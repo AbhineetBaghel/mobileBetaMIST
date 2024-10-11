@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en-us">
 <head>
     <meta charset="utf-8">
@@ -190,3 +190,178 @@
     </script>
 </body>
 </html>
+ -->
+
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+    <title>Unity WebGL Player | MIST</title>
+    <style>
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        #unity-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+        #unity-canvas {
+            background: #231F20;
+            position: absolute;
+            transform-origin: 0 0;
+        }
+        #unity-loading-bar { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: none; }
+        #unity-logo { width: 154px; height: 130px; background: url('TemplateData/unity-logo-dark.png') no-repeat center }
+        #unity-progress-bar-empty { width: 141px; height: 18px; margin-top: 10px; background: url('TemplateData/progress-bar-empty-dark.png') no-repeat center }
+        #unity-progress-bar-full { width: 0%; height: 18px; margin-top: 10px; background: url('TemplateData/progress-bar-full-dark.png') no-repeat center }
+        #unity-warning { position: absolute; left: 50%; top: 5%; transform: translate(-50%); background: white; padding: 10px; display: none }
+    </style>
+</head>
+<body>
+    <div id="unity-container">
+        <canvas id="unity-canvas"></canvas>
+        <div id="unity-loading-bar">
+            <div id="unity-logo"></div>
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
+        </div>
+        <div id="unity-warning"></div>
+    </div>
+    <script>
+        var container = document.querySelector("#unity-container");
+        var canvas = document.querySelector("#unity-canvas");
+        var loadingBar = document.querySelector("#unity-loading-bar");
+        var progressBarFull = document.querySelector("#unity-progress-bar-full");
+        var warningBanner = document.querySelector("#unity-warning");
+
+        function unityShowBanner(msg, type) {
+            function updateBannerVisibility() {
+                warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+            }
+            var div = document.createElement('div');
+            div.innerHTML = msg;
+            warningBanner.appendChild(div);
+            if (type == 'error') div.style = 'background: red; padding: 10px;';
+            else {
+                if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+                setTimeout(function() {
+                    warningBanner.removeChild(div);
+                    updateBannerVisibility();
+                }, 5000);
+            }
+            updateBannerVisibility();
+        }
+
+        function resizeGame() {
+            var windowWidth = window.innerWidth;
+            var windowHeight = window.innerHeight;
+            var gameAspectRatio = 16 / 9; // Adjust this to match your game's aspect ratio
+
+            var canvasWidth, canvasHeight, scale;
+
+            if (windowWidth < windowHeight) {
+                // Portrait
+                canvasWidth = windowHeight;
+                canvasHeight = windowWidth;
+                scale = windowWidth / canvasWidth;
+            } else {
+                // Landscape
+                canvasWidth = windowWidth;
+                canvasHeight = windowHeight;
+                scale = windowHeight / canvasHeight;
+            }
+
+            canvas.style.width = canvasWidth + 'px';
+            canvas.style.height = canvasHeight + 'px';
+            canvas.style.transform = windowWidth < windowHeight 
+                ? `rotate(90deg) scale(${scale})` 
+                : `scale(${scale})`;
+            canvas.style.left = windowWidth < windowHeight 
+                ? `${(windowWidth - canvasHeight) / 2}px` 
+                : '0px';
+            canvas.style.top = windowWidth < windowHeight 
+                ? '0px' 
+                : `${(windowHeight - canvasWidth * scale) / 2}px`;
+        }
+
+        function adjustTouchPosition(event) {
+            var rect = canvas.getBoundingClientRect();
+            var touch = event.touches[0];
+            var isPortrait = window.innerWidth < window.innerHeight;
+            
+            if (isPortrait) {
+                return {
+                    x: (touch.clientY - rect.top) * (canvas.width / rect.height),
+                    y: (rect.right - touch.clientX) * (canvas.height / rect.width)
+                };
+            } else {
+                return {
+                    x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+                    y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+                };
+            }
+        }
+
+        var buildUrl = "Build";
+        var loaderUrl = buildUrl + "/sonic build.loader.js";
+        var config = {
+            dataUrl: buildUrl + "/sonic build.data.unityweb",
+            frameworkUrl: buildUrl + "/sonic build.framework.js.unityweb",
+            codeUrl: buildUrl + "/sonic build.wasm.unityweb",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "DefaultCompany",
+            productName: "MIST",
+            productVersion: "0.1",
+            showBanner: unityShowBanner,
+        };
+
+        config.matchWebGLToCanvasSize = false;
+
+        loadingBar.style.display = "block";
+
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+                progressBarFull.style.width = 100 * progress + "%";
+            }).then((unityInstance) => {
+                loadingBar.style.display = "none";
+                // Setup touch event listeners
+                canvas.addEventListener('touchstart', function(e) {
+                    var pos = adjustTouchPosition(e);
+                    unityInstance.SendMessage("InputManager", "OnTouchStart", JSON.stringify(pos));
+                }, false);
+                canvas.addEventListener('touchmove', function(e) {
+                    var pos = adjustTouchPosition(e);
+                    unityInstance.SendMessage("InputManager", "OnTouchMove", JSON.stringify(pos));
+                }, false);
+                canvas.addEventListener('touchend', function(e) {
+                    unityInstance.SendMessage("InputManager", "OnTouchEnd", "");
+                }, false);
+                resizeGame(); // Initial resize
+            }).catch((message) => {
+                alert(message);
+            });
+        };
+
+        document.body.appendChild(script);
+
+        window.addEventListener('resize', resizeGame);
+        window.addEventListener('orientationchange', function() {
+            setTimeout(resizeGame, 100);
+        });
+    </script>
+</body>
+</html>
+
+
+ 
