@@ -1,119 +1,192 @@
 <!DOCTYPE html>
 <html lang="en-us">
-  <head>
+<head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
     <title>Unity WebGL Player | MIST</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <style>
-      body { margin: 0; padding: 0; }
-      #unity-container { position: absolute; width: 100%; height: 100%; left: 0; top: 0; }
-      #unity-canvas { width: 100%; height: 100%; background: #231F20; }
-      #unity-loading-bar { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: none; }
-      #unity-logo { width: 154px; height: 130px; background: url('TemplateData/unity-logo-dark.png') no-repeat center }
-      #unity-progress-bar-empty { width: 141px; height: 18px; margin-top: 10px; margin-left: 6.5px; background: url('TemplateData/progress-bar-empty-dark.png') no-repeat center }
-      #unity-progress-bar-full { width: 0%; height: 18px; margin-top: 10px; background: url('TemplateData/progress-bar-full-dark.png') no-repeat center }
-      #unity-footer { display: none }
-      #unity-warning { position: absolute; left: 50%; top: 5%; transform: translate(-50%); background: white; padding: 10px; display: none }
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        #unity-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+        #unity-canvas {
+            width: 100%;
+            height: 100%;
+            background: #231F20;
+        }
+        #unity-loading-bar {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+        #unity-logo {
+            width: 154px;
+            height: 130px;
+            background: url('TemplateData/unity-logo-dark.png') no-repeat center;
+        }
+        #unity-progress-bar-empty {
+            width: 141px;
+            height: 18px;
+            margin-top: 10px;
+            background: url('TemplateData/progress-bar-empty-dark.png') no-repeat center;
+        }
+        #unity-progress-bar-full {
+            width: 0%;
+            height: 18px;
+            margin-top: 10px;
+            background: url('TemplateData/progress-bar-full-dark.png') no-repeat center;
+        }
+        #unity-warning {
+            position: absolute;
+            left: 50%;
+            top: 5%;
+            transform: translate(-50%);
+            background: white;
+            padding: 10px;
+            display: none;
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <div id="unity-container" class="unity-mobile">
-      <canvas id="unity-canvas"></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
+        <canvas id="unity-canvas"></canvas>
+        <div id="unity-loading-bar">
+            <div id="unity-logo"></div>
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
         </div>
-      </div>
-      <div id="unity-warning"> </div>
+        <div id="unity-warning"></div>
     </div>
     <script>
-      var container = document.querySelector("#unity-container");
-      var canvas = document.querySelector("#unity-canvas");
-      var loadingBar = document.querySelector("#unity-loading-bar");
-      var progressBarFull = document.querySelector("#unity-progress-bar-full");
-      var warningBanner = document.querySelector("#unity-warning");
+        var container = document.querySelector("#unity-container");
+        var canvas = document.querySelector("#unity-canvas");
+        var loadingBar = document.querySelector("#unity-loading-bar");
+        var progressBarFull = document.querySelector("#unity-progress-bar-full");
+        var warningBanner = document.querySelector("#unity-warning");
 
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      function unityShowBanner(msg, type) {
-        function updateBannerVisibility() {
-          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-        }
-        var div = document.createElement('div');
-        div.innerHTML = msg;
-        warningBanner.appendChild(div);
-        if (type == 'error') div.style = 'background: red; padding: 10px;';
-        else {
-          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-          setTimeout(function() {
-            warningBanner.removeChild(div);
+        // Shows a temporary message banner/ribbon for a few seconds, or
+        // a permanent error message on top of the canvas if type=='error'.
+        // If type=='warning', a yellow highlight color is used.
+        function unityShowBanner(msg, type) {
+            function updateBannerVisibility() {
+                warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+            }
+            var div = document.createElement('div');
+            div.innerHTML = msg;
+            warningBanner.appendChild(div);
+            if (type == 'error') div.style = 'background: red; padding: 10px;';
+            else {
+                if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+                setTimeout(function() {
+                    warningBanner.removeChild(div);
+                    updateBannerVisibility();
+                }, 5000);
+            }
             updateBannerVisibility();
-          }, 5000);
         }
-        updateBannerVisibility();
-      }
 
-      function resizeGame() {
-        var windowWidth = window.innerWidth;
-        var windowHeight = window.innerHeight;
-        var scale = Math.min(windowWidth / windowHeight, windowHeight / windowWidth);
-        var width = windowHeight * scale;
-        var height = windowWidth * scale;
+        function resizeGame() {
+            var windowWidth = window.innerWidth;
+            var windowHeight = window.innerHeight;
+            var gameAspectRatio = 16 / 9; // Adjust this to match your game's aspect ratio
+            
+            // Calculate dimensions to fill the screen width
+            var width = windowWidth;
+            var height = width / gameAspectRatio;
+            
+            // If height is too big, scale it down
+            if (height > windowHeight) {
+                height = windowHeight;
+                width = height * gameAspectRatio;
+            }
+            
+            canvas.style.width = height + 'px';
+            canvas.style.height = width + 'px';
+            canvas.style.position = 'absolute';
+            canvas.style.left = ((windowWidth - height) / 2) + 'px';
+            canvas.style.top = ((windowHeight - width) / 2) + 'px';
+            canvas.style.transform = 'rotate(90deg)';
+            canvas.style.transformOrigin = 'center center';
+        }
 
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-        canvas.style.position = 'absolute';
-        canvas.style.left = ((windowWidth - width) / 2) + 'px';
-        canvas.style.top = ((windowHeight - height) / 2) + 'px';
-        canvas.style.transform = 'rotate(90deg)';
-        canvas.style.transformOrigin = 'center center';
-      }
+        function adjustTouchPosition(event) {
+            var rect = canvas.getBoundingClientRect();
+            var scaleX = canvas.width / rect.width;
+            var scaleY = canvas.height / rect.height;
+            var touch = event.touches[0];
+            
+            var adjustedX = (touch.clientY - rect.top) * scaleY;
+            var adjustedY = canvas.height - (touch.clientX - rect.left) * scaleX;
+            
+            return { x: adjustedX, y: adjustedY };
+        }
 
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/sonic build.loader.js";
-      var config = {
-        dataUrl: buildUrl + "/sonic build.data.unityweb",
-        frameworkUrl: buildUrl + "/sonic build.framework.js.unityweb",
-        codeUrl: buildUrl + "/sonic build.wasm.unityweb",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "MIST",
-        productVersion: "0.1",
-        showBanner: unityShowBanner,
-      };
+        var buildUrl = "Build";
+        var loaderUrl = buildUrl + "/sonic build.loader.js";
+        var config = {
+            dataUrl: buildUrl + "/sonic build.data.unityweb",
+            frameworkUrl: buildUrl + "/sonic build.framework.js.unityweb",
+            codeUrl: buildUrl + "/sonic build.wasm.unityweb",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "DefaultCompany",
+            productName: "MIST",
+            productVersion: "0.1",
+            showBanner: unityShowBanner,
+        };
 
-      // By default Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      config.matchWebGLToCanvasSize = false;
+        // By default Unity keeps WebGL canvas render target size matched with
+        // the DOM size of the canvas element (scaled by window.devicePixelRatio)
+        // Set this to false if you want to decouple this synchronization from
+        // happening inside the engine, and you would instead like to size up
+        // the canvas DOM size and WebGL render target sizes yourself.
+        config.matchWebGLToCanvasSize = false;
 
-      loadingBar.style.display = "block";
+        loadingBar.style.display = "block";
 
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          progressBarFull.style.width = 100 * progress + "%";
-        }).then((unityInstance) => {
-          loadingBar.style.display = "none";
-          resizeGame(); // Initial resize
-        }).catch((message) => {
-          alert(message);
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+                progressBarFull.style.width = 100 * progress + "%";
+            }).then((unityInstance) => {
+                loadingBar.style.display = "none";
+                // Setup touch event listeners
+                canvas.addEventListener('touchstart', function(e) {
+                    var pos = adjustTouchPosition(e);
+                    unityInstance.SendMessage("InputManager", "OnTouchStart", JSON.stringify(pos));
+                }, false);
+                canvas.addEventListener('touchmove', function(e) {
+                    var pos = adjustTouchPosition(e);
+                    unityInstance.SendMessage("InputManager", "OnTouchMove", JSON.stringify(pos));
+                }, false);
+                canvas.addEventListener('touchend', function(e) {
+                    unityInstance.SendMessage("InputManager", "OnTouchEnd", "");
+                }, false);
+                resizeGame(); // Initial resize
+            }).catch((message) => {
+                alert(message);
+            });
+        };
+
+        document.body.appendChild(script);
+
+        window.addEventListener('resize', resizeGame);
+        window.addEventListener('orientationchange', function() {
+            setTimeout(resizeGame, 100);
         });
-      };
-
-      document.body.appendChild(script);
-
-      window.addEventListener('resize', resizeGame);
-      window.addEventListener('orientationchange', function() {
-        setTimeout(resizeGame, 100);
-      });
     </script>
-  </body>
+</body>
 </html>
