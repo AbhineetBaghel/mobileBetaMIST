@@ -24,16 +24,16 @@
       /* Styles for mobile devices */
       @media only screen and (max-width: 768px) {
         #unity-container.unity-mobile {
-          width: 80vh;
-          height: 80vw;
+          width: 100vh;
+          height: 100vw;
           position: absolute;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%) rotate(90deg);
         }
         #unity-canvas.unity-mobile {
-          width: 80% !important;
-          height: 80% !important;
+          width: 100% !important;
+          height: 100% !important;
         }
         #unity-footer {
           display: none; /* Hide footer on mobile */
@@ -99,7 +99,7 @@
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         var meta = document.createElement('meta');
         meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=no';
         document.getElementsByTagName('head')[0].appendChild(meta);
         container.className = "unity-mobile";
         canvas.className = "unity-mobile";
